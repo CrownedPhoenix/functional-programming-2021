@@ -1,2 +1,2 @@
-# functional-programming-2021
-Repo for all assignments.
+# Functional Programming 2021
+Each assignment should have it's own folder on main.
