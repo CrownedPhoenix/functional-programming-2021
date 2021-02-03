@@ -1,2 +1,2 @@
 # Functional Programming 2021
-Each assignment should have it's own folder on main.
+Each assignment should have its own folder on main.
