@@ -1,6 +1,11 @@
 # SudokuElixir
 
-**TODO: Add description**
+## Summary
+`board_utils.ex` contains utility methods for reading a board from a file and solving that board.
+Currently, I just print to the console as the board is being solved. This is nice because if
+I want to see it a little slower I can just add a Process.sleep(...) for however long I 
+want it to pause between redraws. It's rather appealing to see it step through the
+possibilities even though it takes a bruteforce approach.
 
 ## Installation
 

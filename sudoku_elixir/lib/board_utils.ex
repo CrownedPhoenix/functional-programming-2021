@@ -62,7 +62,6 @@ defmodule BoardUtils do
   @spec draw(board :: Board) :: Board
   def draw(board) do
     IO.write(IO.ANSI.clear())
-    # IO.puts('\n')
 
     for row <- 0..8, col <- 0..8 do
       case {row, col} do
@@ -129,7 +128,6 @@ defmodule BoardUtils do
       true ->
         {next_row, next_col} = get_next_row_col(board, row, col)
         cell_possibilities = get_cell_possibilities(board, row, col)
-        # IO.inspect(cell_possibilities)
 
         Enum.find_value(cell_possibilities, fn value ->
           newBoard = put_in(board[{row, col}], value)
@@ -152,7 +150,6 @@ defmodule BoardUtils do
     next_row = div(next_position, n)
     next_col = rem(next_position, n)
 
-    # IO.inspect {next_row, next_col}
     if next_row >= m do
       {nil, nil}
     else
@@ -200,13 +197,6 @@ defmodule BoardUtils do
     block_row_start = div(row, bm) * bm
     block_col_start = div(col, bn) * bn
     all_block_possibilities = Enum.to_list(1..(bm * bn))
-
-    # IO.inspect(block_row_start)
-    # IO.inspect(block_col_start)
-    # IO.inspect(bm)
-    # IO.inspect(bn)
-    # IO.inspect(block_row_start..(block_row_start + bm - 1))
-    # IO.inspect(block_col_start..(block_col_start + bn - 1))
 
     current_block_values =
       for r <- block_row_start..(block_row_start + bm - 1),
