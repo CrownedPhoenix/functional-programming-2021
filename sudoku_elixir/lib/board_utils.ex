@@ -6,6 +6,45 @@ defmodule BoardUtils do
   @type board :: Board.board()
 
   @doc """
+  Generates a random Sudoku Board.
+  There are no guarantees on the solvability of the board.
+  The actual fill % will be less than or equal to fill_pct.
+  - m and n must be divisible by three.
+  - fill_pct must be between 0-1
+  """
+  @spec gen_board(m :: non_neg_integer, n :: non_neg_integer, fill_pct :: float) :: board
+  def gen_board(bm, bn, fill_pct) do
+    b = Board.new(bm, bn)
+    cell_positions = for r <- 0..(b.m - 1), c <- 0..(b.n - 1), do: {r, c}
+    remaining = round(b.m * b.n * fill_pct)
+    cell_positions = Enum.shuffle(cell_positions)
+    gen_board_r(b, cell_positions, remaining)
+  end
+
+  def gen_board_r(board, cell_positions, remaining) do
+    if remaining == 0 or Enum.empty?(cell_positions) do
+      board
+    else
+      [cell_position | rest] = cell_positions
+      {r, c} = cell_position
+
+      cell_possibilities =
+        get_cell_possibilities(board, r, c)
+        |> Enum.shuffle()
+
+      if Enum.empty?(cell_possibilities) do
+        board
+      else
+        [value | other_possibilities] = cell_possibilities
+        newBoard = put_in(board[{r, c}], value)
+        draw(newBoard)
+        Process.sleep(100)
+        gen_board_r(newBoard, rest, remaining - 1)
+      end
+    end
+  end
+
+  @doc """
   Generates an Sudoku board from a file.
 
   ## Examples
@@ -132,7 +171,7 @@ defmodule BoardUtils do
         Enum.find_value(cell_possibilities, fn value ->
           newBoard = put_in(board[{row, col}], value)
           draw(newBoard)
-          # Process.sleep(10)
+          Process.sleep(10)
           solve(newBoard, next_row, next_col)
         end)
     end

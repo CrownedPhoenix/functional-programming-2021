@@ -12,6 +12,10 @@ defmodule Board do
 
   @behaviour Access
 
+  def new(bm, bn) do
+    %Board{m: bm * 3, n: bn * 3, bn: bn, bm: bm, data: %{}}
+  end
+
   @impl Access
   def fetch(term, key) do
     Map.fetch(term.data, key)
