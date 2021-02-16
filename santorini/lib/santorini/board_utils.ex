@@ -33,10 +33,10 @@ defmodule Santorini.BoardUtils do
       Stream.with_index(row)
       |> Stream.each(fn {val, col_num} ->
         cond do
-          {row_num, col_num} in Enum.at(board.players, 0) ->
+          [row_num, col_num] in Enum.at(board.players, 0) ->
             IO.write(IO.ANSI.format([:blue_background, :white, "#{val}", :reset, " "]))
 
-          {row_num, col_num} in Enum.at(board.players, 1) ->
+          [row_num, col_num] in Enum.at(board.players, 1) ->
             IO.write(IO.ANSI.format([:white_background, :black, "#{val}", :reset, " "]))
 
           true ->
@@ -54,7 +54,7 @@ defmodule Santorini.BoardUtils do
     value
     |> Stream.map(fn player ->
       Stream.map(player, fn locs ->
-        Stream.map(locs, fn val -> val - 1 end) |> Enum.to_list() |> List.to_tuple()
+        Stream.map(locs, fn val -> val - 1 end) |> Enum.to_list()
       end)
       |> Enum.to_list()
     end)
