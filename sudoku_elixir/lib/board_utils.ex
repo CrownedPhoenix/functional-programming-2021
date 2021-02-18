@@ -36,27 +36,6 @@ defmodule BoardUtils do
     else
       _ -> board
     end
-
-    # if remaining == 0 or Enum.empty?(cell_positions) do
-    #   board
-    # else
-    #   [cell_position | rest] = cell_positions
-    #   {r, c} = cell_position
-
-    #   cell_possibilities =
-    #     get_cell_possibilities(board, r, c)
-    #     |> Enum.shuffle()
-
-    #   if Enum.empty?(cell_possibilities) do
-    #     board
-    #   else
-    #     [value | other_possibilities] = cell_possibilities
-    #     newBoard = put_in(board[{r, c}], value)
-    #     draw(newBoard)
-    #     Process.sleep(100)
-    #     gen_board_r(newBoard, rest, remaining - 1)
-    #   end
-    # end
   end
 
   @doc """

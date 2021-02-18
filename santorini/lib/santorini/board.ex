@@ -15,14 +15,27 @@ defmodule Santorini.Board do
           fun :: (row :: Int, col :: Int -> [0..4])
         ) :: Board.t()
   def update_worker(board, player_id, worker_id, fun) do
-    update_players(
-      board,
-      List.update_at(board.players, player_id, fn player ->
-        List.update_at(player, worker_id, fn worker ->
-          fun.(Enum.at(worker, 0), Enum.at(worker, 1))
-        end)
+    List.update_at(board.players, player_id, fn player ->
+      List.update_at(player, worker_id, fn worker ->
+        origin_r = Enum.at(worker, 0)
+        origin_c = Enum.at(worker, 1)
+        [new_r, new_c] = fun.(origin_r, origin_c)
+
+        if space_available(board, new_r, new_c) do
+          [new_r, new_c]
+        else
+          [origin_r, origin_c]
+        end
       end)
-    )
+    end)
+    |> (&update_players(board, &1)).()
+  end
+
+  @spec space_available(board :: Board.t(), r :: Int, c :: Int) :: Boolean
+  def space_available(board, r, c) do
+    r < 5 and c < 5 and
+      board.spaces |> Enum.at(r) |> Enum.at(c) < 4 and
+      [r, c] not in (board.players |> Enum.concat())
   end
 
   @spec get_worker_position(board :: Board, player_id :: Int, worker_id :: Int) ::
@@ -41,15 +54,21 @@ defmodule Santorini.Board do
   @spec update_space(board :: Board.t(), row :: Int, col :: Int, fun :: (val :: Int -> Int)) ::
           Board.t()
   def update_space(board, row, col, fun) do
-    update_spaces(
-      board,
-      List.update_at(board.spaces, row, fn r ->
-        List.update_at(r, col, fun)
-      end)
-    )
+    current_value = Enum.at(board.spaces, row) |> Enum.at(col)
+
+    if current_value < 4 do
+      update_spaces(
+        board,
+        List.update_at(board.spaces, row, fn r ->
+          List.update_at(r, col, fun)
+        end)
+      )
+    else
+      board
+    end
   end
 
-  @spec move_worker(board :: Board.t(), player_id :: Int, worker_id :: Int, dir :: Int) ::
+  @spec build(board :: Board.t(), player_id :: Int, worker_id :: Int, dir :: Int) ::
           Board.t()
   def build(board, player_id, worker_id, dir) do
     {row, col} = get_worker_position(board, player_id, worker_id)
@@ -125,5 +144,14 @@ defmodule Santorini.Board do
       7 ->
         update_worker(board, player_id, worker_id, fn row, col -> [row - 1, col - 1] end)
     end
+  end
+
+  @spec next_turn(board :: Board.t()) :: Board.t()
+  def next_turn(board) do
+    %Santorini.Board{
+      players: Enum.reverse(board.players),
+      spaces: board.spaces,
+      turn: board.turn + 1
+    }
   end
 end

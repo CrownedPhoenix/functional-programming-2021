@@ -2,28 +2,25 @@ defmodule Santorini.BoardUtils do
   @moduledoc """
     Helpful functions for creating, drawing, and manipulating board state.
   """
-  import Jason
-  import Tuple
+  require Jason
   alias Santorini.Board, as: Board
 
   @spec read_board_from!(file :: String.t()) :: Board.t()
   def read_board_from!(file) do
-    struct(
-      Board,
-      File.read!(file)
-      |> Jason.decode!()
-      |> Map.to_list()
-      |> Stream.map(fn
-        {"players", value} ->
-          {:players, restructure_players_list(value)}
+    File.read!(file)
+    |> Jason.decode!()
+    |> Map.to_list()
+    |> Stream.map(fn
+      {"players", value} ->
+        {:players, restructure_players_list(value)}
 
-        {"spaces", value} ->
-          {:spaces, value}
+      {"spaces", value} ->
+        {:spaces, value}
 
-        {"turn", value} ->
-          {:turn, value}
-      end)
-    )
+      {"turn", value} ->
+        {:turn, value}
+    end)
+    |> (&struct(Board, &1)).()
   end
 
   @spec draw(board :: Board.t()) :: Board.t()
