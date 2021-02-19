@@ -5,22 +5,17 @@ defmodule Santorini.BoardUtils do
   require Jason
   alias Santorini.Board, as: Board
 
+  @spec from_json(json :: String.t()) :: Board.t()
+  def from_json(json) do
+    Jason.decode!(json, [{:keys, :atoms}])
+    |> (&struct(Board, &1)).()
+    |> (&Board.update_players(&1, restructure_players_list(&1.players))).()
+  end
+
   @spec read_board_from!(file :: String.t()) :: Board.t()
   def read_board_from!(file) do
     File.read!(file)
-    |> Jason.decode!()
-    |> Map.to_list()
-    |> Stream.map(fn
-      {"players", value} ->
-        {:players, restructure_players_list(value)}
-
-      {"spaces", value} ->
-        {:spaces, value}
-
-      {"turn", value} ->
-        {:turn, value}
-    end)
-    |> (&struct(Board, &1)).()
+    |> from_json()
   end
 
   @spec draw(board :: Board.t()) :: Board.t()

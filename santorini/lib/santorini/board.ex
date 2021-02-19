@@ -3,9 +3,23 @@ defmodule Santorini.Board do
   defstruct [:players, :spaces, :turn]
   @type t :: %__MODULE__{players: [[[0..4]]], spaces: [[1..4]], turn: integer}
 
+  def new() do
+    %Santorini.Board{players: [], spaces: List.duplicate(List.duplicate(0, 5), 5), turn: 0}
+  end
+
   @spec update_players(board :: Board.t(), players :: [[[0..4]]]) :: Board.t()
   def update_players(board, players) do
     %Santorini.Board{players: players, spaces: board.spaces, turn: board.turn}
+  end
+
+  @spec update_spaces(board :: Board.t(), spaces :: [[1..4]]) :: Board.t()
+  def update_spaces(board, spaces) do
+    %Santorini.Board{players: board.players, spaces: spaces, turn: board.turn}
+  end
+
+  @spec update_turn(board :: Board.t(), turn :: Int) :: Board.t()
+  def update_turn(board, turn) do
+    %Santorini.Board{players: board.players, spaces: board.spaces, turn: turn}
   end
 
   @spec update_worker(
@@ -21,7 +35,8 @@ defmodule Santorini.Board do
         origin_c = Enum.at(worker, 1)
         [new_r, new_c] = fun.(origin_r, origin_c)
 
-        if space_available(board, new_r, new_c) do
+        if space_available(board, new_r, new_c) and
+             can_move_between(board, origin_r, origin_c, new_r, new_c) do
           [new_r, new_c]
         else
           [origin_r, origin_c]
@@ -38,17 +53,19 @@ defmodule Santorini.Board do
       [r, c] not in (board.players |> Enum.concat())
   end
 
+  @spec can_move_between(board :: Boart.t(), srcR :: Int, srcC :: Int, dstR :: Int, dstC :: Int) ::
+          Boolean
+  def can_move_between(board, srcR, srcC, dstR, dstC) do
+    (board.spaces |> Enum.at(srcR) |> Enum.at(srcC)) + 1 >=
+      board.spaces |> Enum.at(dstR) |> Enum.at(dstC)
+  end
+
   @spec get_worker_position(board :: Board, player_id :: Int, worker_id :: Int) ::
           {Int, Int}
   def get_worker_position(board, player_id, worker_id) do
     Enum.at(board.players, player_id)
     |> Enum.at(worker_id)
     |> List.to_tuple()
-  end
-
-  @spec update_spaces(board :: Board.t(), spaces :: [[1..4]]) :: Board.t()
-  def update_spaces(board, spaces) do
-    %Santorini.Board{players: board.players, spaces: spaces, turn: board.turn}
   end
 
   @spec update_space(board :: Board.t(), row :: Int, col :: Int, fun :: (val :: Int -> Int)) ::
@@ -148,10 +165,6 @@ defmodule Santorini.Board do
 
   @spec next_turn(board :: Board.t()) :: Board.t()
   def next_turn(board) do
-    %Santorini.Board{
-      players: Enum.reverse(board.players),
-      spaces: board.spaces,
-      turn: board.turn + 1
-    }
+    update_turn(board, board.turn + 1)
   end
 end
