@@ -9,7 +9,13 @@ defmodule Santorini.BoardUtils do
   def from_json(json) do
     Jason.decode!(json, [{:keys, :atoms}])
     |> (&struct(Board, &1)).()
-    |> (&Board.update_players(&1, restructure_players_list(&1.players))).()
+    |> fix_players_list()
+  end
+
+  def to_json(board) do
+    board
+    |> unfix_players_list()
+    |> Jason.encode!()
   end
 
   @spec read_board_from!(file :: String.t()) :: Board.t()
@@ -42,14 +48,49 @@ defmodule Santorini.BoardUtils do
     |> Stream.run()
   end
 
-  def restructure_players_list(value) do
-    value
-    |> Stream.map(fn player ->
-      Stream.map(player, fn locs ->
-        Stream.map(locs, fn val -> val - 1 end) |> Enum.to_list()
+  @spec gen_random_starting_board() :: Board.t()
+  def gen_random_starting_board() do
+    random_players =
+      Stream.transform(1..4, [], fn i, chosen ->
+        choice =
+          Stream.repeatedly(fn -> [Enum.random(0..4), Enum.random(0..4)] end)
+          |> Stream.filter(fn pos -> pos not in chosen end)
+          |> Stream.take(1)
+          |> Enum.to_list()
+
+        {choice, chosen ++ choice}
+      end)
+      |> Stream.chunk_every(2, 2)
+      |> Enum.to_list()
+
+    Board.new() |> Board.update_players(random_players)
+  end
+
+  def unfix_players_list(board) do
+    Board.update_players(
+      board,
+      board.players
+      |> Stream.map(fn player ->
+        Stream.map(player, fn locs ->
+          Stream.map(locs, fn val -> val + 1 end) |> Enum.to_list()
+        end)
+        |> Enum.to_list()
       end)
       |> Enum.to_list()
-    end)
-    |> Enum.to_list()
+    )
+  end
+
+  def fix_players_list(board) do
+    Board.update_players(
+      board,
+      board.players
+      |> Stream.map(fn player ->
+        Stream.map(player, fn locs ->
+          Stream.map(locs, fn val -> val - 1 end) |> Enum.to_list()
+        end)
+        |> Enum.to_list()
+      end)
+      |> Enum.to_list()
+    )
   end
 end

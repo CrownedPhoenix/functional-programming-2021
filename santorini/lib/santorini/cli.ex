@@ -6,19 +6,68 @@ defmodule Santorini.CLI do
   def main(args \\ []) do
     {parsed, _, _} =
       parse(args,
-        strict: [action: :integer, draw: :boolean, file: :string],
-        aliases: [a: :action, d: :draw, f: :file]
+        strict: [
+          action: :integer,
+          draw: :boolean,
+          swap_players: :boolean,
+          vectorize: :boolean,
+          unvectorize: :boolean,
+          gen: :boolean
+        ],
+        aliases: [
+          a: :action,
+          d: :draw,
+          s: :swap_players,
+          v: :vectorize,
+          uv: :unvectorize,
+          g: :boolean
+        ]
       )
 
-    # TODO: Implement the other flags
+    case parsed do
+      [action: actionId] ->
+        b = BoardUtils.from_json(IO.read(:stdio, :line))
+        <<playerId::1, workerId::1, moveDir::3, buildDir::3>> = <<actionId>>
 
-    players = Jason.decode!(IO.read(:stdio, :line))
+        b
+        |> Board.move_worker(playerId, workerId, moveDir)
+        |> Board.build(playerId, workerId, buildDir)
+        |> BoardUtils.to_json()
+        |> IO.puts()
+
+      [swap_players: true] ->
+        IO.read(:stdio, :line)
+        |> BoardUtils.from_json()
+        |> Board.swap_players()
+        |> BoardUtils.to_json()
+        |> IO.puts()
+
+      [draw: true] ->
+        IO.read(:stdio, :line) |> BoardUtils.from_json() |> BoardUtils.draw()
+
+      [vectorize: true] ->
+        IO.read(:stdio, :line) |> BoardUtils.from_json() |> BoardUtils.vectorize() |> IO.puts()
+
+      [unvectorize: true] ->
+        IO.read(:stdio, :line) |> BoardUtils.from_json() |> BoardUtils.unvectorize() |> IO.puts()
+
+      [gen: true] ->
+        BoardUtils.vectorize() |> IO.puts()
+
+      _ ->
+        play()
+    end
+  end
+
+  def play() do
+    players = IO.read(:stdio, :line) |> Jason.decode!()
 
     b =
       case length(players) do
         0 ->
-          IO.puts(Jason.encode!([[3, 3], [1, 3]]))
-          BoardUtils.from_json(IO.read(:stdio, :line))
+          [[3, 3], [1, 3]] |> Jason.encode!() |> IO.puts()
+
+          IO.read(:stdio, :line) |> BoardUtils.from_json()
 
         1 ->
           other = Enum.at(players, 0)
@@ -34,13 +83,12 @@ defmodule Santorini.CLI do
 
     Stream.unfold(b, fn b ->
       # TODO: Perform action
-      IO.puts(Jason.encode!(b))
+      BoardUtils.to_json(b)
+      |> IO.puts()
+
       {b, BoardUtils.from_json(IO.read(:stdio, :line))}
     end)
     |> Stream.run()
-  end
-
-  def play() do
   end
 end
 

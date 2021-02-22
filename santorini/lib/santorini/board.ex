@@ -166,5 +166,10 @@ defmodule Santorini.Board do
   @spec next_turn(board :: Board.t()) :: Board.t()
   def next_turn(board) do
     update_turn(board, board.turn + 1)
+    |> swap_players()
+  end
+
+  def swap_players(board) do
+    %Santorini.Board{players: Enum.reverse(board.players), spaces: board.spaces, turn: board.turn}
   end
 end
