@@ -24,6 +24,38 @@ defmodule Santorini.BoardUtils do
     |> from_json()
   end
 
+  @spec vectorize(board :: Board.t()) :: Board.t()
+  def vectorize(board) do
+    Enum.concat(board.spaces, board.players)
+    |> List.flatten()
+    |> Enum.join("")
+  end
+
+  @spec unvectorize(board :: String) :: Board.t()
+  def unvectorize(board_vector) do
+    {spaces_vector, players_vector} = String.split_at(board_vector, -8)
+
+    spaces =
+      spaces_vector
+      |> String.split("", trim: true)
+      |> Stream.map(&String.to_integer(&1))
+      |> Stream.chunk_every(5)
+      |> Enum.to_list
+
+
+    players =
+      players_vector
+      |> String.split("", trim: true)
+      |> Stream.map(&String.to_integer(&1))
+      |> Stream.chunk_every(4)
+      |> Stream.map(&Enum.chunk_every(&1, 2))
+      |> Enum.to_list
+
+
+    Board.new() |> Board.update_spaces(spaces) |> Board.update_players(players)
+
+  end
+
   @spec draw(board :: Board.t()) :: Board.t()
   def draw(board) do
     Stream.with_index(board.spaces)
@@ -48,10 +80,19 @@ defmodule Santorini.BoardUtils do
     |> Stream.run()
   end
 
+  @spec action(board :: Board.t(), actionId :: Int) :: Board.t()
+  def action(board, actionId) do
+    <<playerId::1, workerId::1, moveDir::3, buildDir::3>> = <<actionId>>
+
+    board
+    |> Board.move_worker(playerId, workerId, moveDir)
+    |> Board.build(playerId, workerId, buildDir)
+  end
+
   @spec gen_random_starting_board() :: Board.t()
   def gen_random_starting_board() do
     random_players =
-      Stream.transform(1..4, [], fn i, chosen ->
+      Stream.transform(1..4, [], fn _, chosen ->
         choice =
           Stream.repeatedly(fn -> [Enum.random(0..4), Enum.random(0..4)] end)
           |> Stream.filter(fn pos -> pos not in chosen end)

@@ -19,19 +19,19 @@ defmodule Santorini.CLI do
           d: :draw,
           s: :swap_players,
           v: :vectorize,
-          uv: :unvectorize,
-          g: :boolean
+          u: :unvectorize,
+          g: :gen
         ]
       )
+
+    Application.put_env(:elixir, :ansi_enabled, true)
 
     case parsed do
       [action: actionId] ->
         b = BoardUtils.from_json(IO.read(:stdio, :line))
-        <<playerId::1, workerId::1, moveDir::3, buildDir::3>> = <<actionId>>
 
         b
-        |> Board.move_worker(playerId, workerId, moveDir)
-        |> Board.build(playerId, workerId, buildDir)
+        |> BoardUtils.action(actionId)
         |> BoardUtils.to_json()
         |> IO.puts()
 
@@ -49,10 +49,16 @@ defmodule Santorini.CLI do
         IO.read(:stdio, :line) |> BoardUtils.from_json() |> BoardUtils.vectorize() |> IO.puts()
 
       [unvectorize: true] ->
-        IO.read(:stdio, :line) |> BoardUtils.from_json() |> BoardUtils.unvectorize() |> IO.puts()
+        IO.read(:stdio, :line)
+        |> String.trim()
+        |> BoardUtils.unvectorize()
+        |> BoardUtils.to_json()
+        |> IO.puts()
 
       [gen: true] ->
-        BoardUtils.vectorize() |> IO.puts()
+        BoardUtils.gen_random_starting_board()
+        |> BoardUtils.to_json()
+        |> IO.puts()
 
       _ ->
         play()
@@ -82,8 +88,11 @@ defmodule Santorini.CLI do
       end
 
     Stream.unfold(b, fn b ->
-      # TODO: Perform action
-      BoardUtils.to_json(b)
+      # TODO: Determine optimal actionId
+      actionId = 0
+
+      BoardUtils.action(b, actionId)
+      |> BoardUtils.to_json()
       |> IO.puts()
 
       {b, BoardUtils.from_json(IO.read(:stdio, :line))}
