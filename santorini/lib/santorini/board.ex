@@ -35,7 +35,7 @@ defmodule Santorini.Board do
         origin_c = Enum.at(worker, 1)
         [new_r, new_c] = fun.(origin_r, origin_c)
 
-        if space_available(board, new_r, new_c) and
+        if valid_space(board, new_r, new_c) and space_unoccupied(board, new_r, new_c) and
              can_move_between(board, origin_r, origin_c, new_r, new_c) do
           [new_r, new_c]
         else
@@ -46,11 +46,9 @@ defmodule Santorini.Board do
     |> (&update_players(board, &1)).()
   end
 
-  @spec space_available(board :: Board.t(), r :: Int, c :: Int) :: Boolean
-  def space_available(board, r, c) do
-    r < 5 and c < 5 and
-      board.spaces |> Enum.at(r) |> Enum.at(c) < 4 and
-      [r, c] not in (board.players |> Enum.concat())
+  @spec valid_space(board :: Board.t(), r :: Int, c :: Int) :: Boolean
+  def valid_space(_board, r, c) do
+    r in 0..4 and c in 0..4
   end
 
   @spec can_move_between(board :: Boart.t(), srcR :: Int, srcC :: Int, dstR :: Int, dstC :: Int) ::
@@ -73,7 +71,7 @@ defmodule Santorini.Board do
   def update_space(board, row, col, fun) do
     current_value = Enum.at(board.spaces, row) |> Enum.at(col)
 
-    if current_value < 4 do
+    if current_value < 4 and row in 0..4 and col in 0..4 and space_unoccupied(board, row, col) do
       update_spaces(
         board,
         List.update_at(board.spaces, row, fn r ->
@@ -83,6 +81,10 @@ defmodule Santorini.Board do
     else
       board
     end
+  end
+
+  def space_unoccupied(board, row, col) do
+    [row, col] not in Enum.concat(board.players)
   end
 
   @spec build(board :: Board.t(), player_id :: Int, worker_id :: Int, dir :: Int) ::

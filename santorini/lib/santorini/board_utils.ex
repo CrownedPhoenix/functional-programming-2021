@@ -40,8 +40,7 @@ defmodule Santorini.BoardUtils do
       |> String.split("", trim: true)
       |> Stream.map(&String.to_integer(&1))
       |> Stream.chunk_every(5)
-      |> Enum.to_list
-
+      |> Enum.to_list()
 
     players =
       players_vector
@@ -49,11 +48,9 @@ defmodule Santorini.BoardUtils do
       |> Stream.map(&String.to_integer(&1))
       |> Stream.chunk_every(4)
       |> Stream.map(&Enum.chunk_every(&1, 2))
-      |> Enum.to_list
-
+      |> Enum.to_list()
 
     Board.new() |> Board.update_spaces(spaces) |> Board.update_players(players)
-
   end
 
   @spec draw(board :: Board.t()) :: Board.t()
@@ -84,9 +81,14 @@ defmodule Santorini.BoardUtils do
   def action(board, actionId) do
     <<playerId::1, workerId::1, moveDir::3, buildDir::3>> = <<actionId>>
 
-    board
-    |> Board.move_worker(playerId, workerId, moveDir)
-    |> Board.build(playerId, workerId, buildDir)
+    with moved <- Board.move_worker(board, playerId, workerId, moveDir),
+         false <- moved == board,
+         built <- Board.build(moved, playerId, workerId, buildDir),
+         false <- built == moved do
+      built
+    else
+      _ -> board
+    end
   end
 
   @spec gen_random_starting_board() :: Board.t()
