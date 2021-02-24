@@ -13,6 +13,7 @@ defmodule Santorini.CLI do
           vectorize: :boolean,
           unvectorize: :boolean,
           gen: :boolean,
+          turn: :boolean,
           state: :boolean
         ],
         aliases: [
@@ -21,7 +22,8 @@ defmodule Santorini.CLI do
           s: :swap_players,
           v: :vectorize,
           u: :unvectorize,
-          g: :gen
+          g: :gen,
+          t: :turn
         ]
       )
 
@@ -29,9 +31,8 @@ defmodule Santorini.CLI do
 
     case parsed do
       [action: actionId] ->
-        b = BoardUtils.from_json(IO.read(:stdio, :line))
-
-        b
+        IO.read(:stdio, :line)
+        |> BoardUtils.from_json()
         |> BoardUtils.action(actionId)
         |> BoardUtils.to_json()
         |> IO.puts()
@@ -68,6 +69,14 @@ defmodule Santorini.CLI do
         |> Jason.encode!()
         |> IO.puts()
 
+      [turn: true] ->
+        IO.read(:stdio, :line)
+        |> BoardUtils.from_json()
+        |> BoardUtils.take_turn()
+        |> Board.swap_players()
+        |> BoardUtils.to_json()
+        |> IO.puts()
+
       _ ->
         play()
     end
@@ -95,11 +104,12 @@ defmodule Santorini.CLI do
           Board.new() |> Board.update_players(players ++ [mine]) |> Board.update_turn(3)
       end
 
-    Stream.unfold(b, fn b ->
+    Enum.unfold(b, fn b ->
       # TODO: Determine optimal actionId
       actionId = 0
 
       BoardUtils.action(b, actionId)
+      |> Board.swap_players()
       |> BoardUtils.to_json()
       |> IO.puts()
 

@@ -134,8 +134,13 @@ defmodule Santorini.BoardUtils do
   end
 
   def take_turn(board) do
-    board
-    |> action(Enum.random(0..127))
+    Stream.repeatedly(fn ->
+      action(board, Enum.random(0..127))
+    end)
+    |> Stream.filter(fn new_state -> new_state != board end)
+    |> Stream.take(1)
+    |> Enum.to_list()
+    |> List.first()
     |> Board.next_turn()
   end
 

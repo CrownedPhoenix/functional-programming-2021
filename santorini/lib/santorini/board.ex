@@ -69,9 +69,10 @@ defmodule Santorini.Board do
   @spec update_space(board :: Board.t(), row :: Int, col :: Int, fun :: (val :: Int -> Int)) ::
           Board.t()
   def update_space(board, row, col, fun) do
-    current_value = Enum.at(board.spaces, row) |> Enum.at(col)
-
-    if current_value < 4 and row in 0..4 and col in 0..4 and space_unoccupied(board, row, col) do
+    with true <- row in 0..4,
+         true <- col in 0..4,
+         current_value <- Enum.at(board.spaces, row) |> Enum.at(col),
+         true <- current_value < 4 do
       update_spaces(
         board,
         List.update_at(board.spaces, row, fn r ->
@@ -79,7 +80,7 @@ defmodule Santorini.Board do
         end)
       )
     else
-      board
+      _ -> board
     end
   end
 
@@ -168,7 +169,6 @@ defmodule Santorini.Board do
   @spec next_turn(board :: Board.t()) :: Board.t()
   def next_turn(board) do
     update_turn(board, board.turn + 1)
-    |> swap_players()
   end
 
   def swap_players(board) do
