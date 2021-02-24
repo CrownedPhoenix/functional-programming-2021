@@ -109,6 +109,36 @@ defmodule Santorini.BoardUtils do
     Board.new() |> Board.update_players(random_players)
   end
 
+  def game_state(board) do
+    three_high_spaces =
+      board.spaces
+      |> Stream.with_index()
+      |> Stream.flat_map(fn {row, rn} ->
+        Stream.with_index(row)
+        |> Stream.filter(fn {val, cn} -> val == 3 end)
+        |> Enum.map(fn {val, cn} -> [rn, cn] end)
+      end)
+
+    board.players
+    |> Stream.map(fn worker_positions ->
+      Enum.reduce_while(worker_positions, false, fn pos, flag ->
+        if pos in three_high_spaces do
+          {:halt, true}
+        else
+          {:cont, flag}
+        end
+      end)
+    end)
+    |> (&Stream.zip([:you, :them], &1)).()
+    |> Map.new()
+  end
+
+  def take_turn(board) do
+    board
+    |> action(Enum.random(0..127))
+    |> Board.next_turn()
+  end
+
   def unfix_players_list(board) do
     Board.update_players(
       board,

@@ -12,7 +12,8 @@ defmodule Santorini.CLI do
           swap_players: :boolean,
           vectorize: :boolean,
           unvectorize: :boolean,
-          gen: :boolean
+          gen: :boolean,
+          state: :boolean
         ],
         aliases: [
           a: :action,
@@ -58,6 +59,13 @@ defmodule Santorini.CLI do
       [gen: true] ->
         BoardUtils.gen_random_starting_board()
         |> BoardUtils.to_json()
+        |> IO.puts()
+
+      [state: true] ->
+        IO.read(:stdio, :line)
+        |> BoardUtils.from_json()
+        |> BoardUtils.game_state()
+        |> Jason.encode!()
         |> IO.puts()
 
       _ ->
