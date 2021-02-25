@@ -88,7 +88,7 @@ defmodule Santorini.CLI do
     b =
       case length(players) do
         0 ->
-          [[3, 3], [1, 3]] |> Jason.encode!() |> IO.puts()
+          [[[3, 3], [1, 3]]] |> Jason.encode!() |> IO.puts()
 
           IO.read(:stdio, :line) |> BoardUtils.from_json()
 
@@ -104,12 +104,11 @@ defmodule Santorini.CLI do
           Board.new() |> Board.update_players(players ++ [mine]) |> Board.update_turn(3)
       end
 
-    Enum.unfold(b, fn b ->
+    Stream.unfold(b, fn b ->
       # TODO: Determine optimal actionId
-      actionId = Enum.random(1..127)
 
-      BoardUtils.action(b, actionId)
-      |> Board.swap_players()
+      b
+      |> BoardUtils.take_turn()
       |> BoardUtils.to_json()
       |> IO.puts()
 
