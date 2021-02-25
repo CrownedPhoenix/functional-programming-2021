@@ -2,4 +2,4 @@
 Each assignment should have its own folder on main.
 
 ## Santorini
-Executable: santorini/santorini
+Executable: `santorini/santorini`
