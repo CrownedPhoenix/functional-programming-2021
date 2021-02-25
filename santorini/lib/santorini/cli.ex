@@ -106,7 +106,7 @@ defmodule Santorini.CLI do
 
     Enum.unfold(b, fn b ->
       # TODO: Determine optimal actionId
-      actionId = 0
+      actionId = Enum.random(1..127)
 
       BoardUtils.action(b, actionId)
       |> Board.swap_players()
