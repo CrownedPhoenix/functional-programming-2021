@@ -13,7 +13,7 @@ Options:
 - `--options # | -o #`: Computes the possible valid actions for the specified player (0 or 1). Output: JSON(list)
 - `--state`: Computes the victory state of the input board (JSON). Output: JSON({you: boolean, them: boolean})
 
-## Installation
+## Installation (not yet available in Hex)
 
 If [available in Hex](https://hex.pm/docs/publish), the package can be installed
 by adding `santorini` to your list of dependencies in `mix.exs`:
