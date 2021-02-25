@@ -1,7 +1,7 @@
 # Santorini
 
 ## Usage
-`./santorini [-a | -d | -s | -v | -u | -g | -t | -o | --state]`
+`./santorini [-a | -d | -s | -v | -u | -g | -t | -o | --state]`  
 Options:  
 - `--action # | -a #`: Performs the specified action on the input board (JSON). Output: JSON(Board)
 - `--draw | -d`: Draws the input board (JSON) to the console.
