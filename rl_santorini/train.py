@@ -7,7 +7,7 @@ env = env.Env()
 LEARNING_RATE = 0.1
 
 DISCOUNT = 0.95
-EPISODES = 500
+EPISODES = 20000
 STATS_EVERY = 10
 
 # Exploration settings
@@ -20,7 +20,8 @@ epsilon_decay_value = epsilon/(END_EPSILON_DECAYING - START_EPSILON_DECAYING)
 ep_rewards = []
 aggr_ep_rewards = {'ep': [], 'avg': [], 'max': [], 'min': []}
 
-q_table = {}
+
+q_table = np.load("./qtables/1/800-qtable.npy", allow_pickle=True).item()
 for episode in range(EPISODES):
     state = env.reset()
 
@@ -32,7 +33,9 @@ for episode in range(EPISODES):
     done = False
 
     while not done:
-        action = np.argmax(q_table[state])
+        valid_actions = env.get_valid_actions(0)
+
+        action = max(valid_actions, key=lambda a: q_table[state][a])
         new_state, reward, done = env.step(action)
         episode_reward += reward
 
@@ -40,7 +43,7 @@ for episode in range(EPISODES):
             q_table[new_state] = np.random.uniform(
                 low=-2, high=0, size=env.action_space_n)
 
-        print(reward, new_state)
+        print(reward, new_state, action)
 
         # If simulation did not end yet after last step - update Q table
         if not done:
@@ -69,7 +72,7 @@ for episode in range(EPISODES):
         state = new_state
 
     if episode % 100 == 0:
-        np.save(f"qtables/{episode}-qtable.npy", q_table)
+        np.save(f"qtables/2/{episode}-qtable.npy", q_table)
 
     # Decaying is being done every episode if episode number is within decaying range
     if END_EPSILON_DECAYING >= episode >= START_EPSILON_DECAYING:

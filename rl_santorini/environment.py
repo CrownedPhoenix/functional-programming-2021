@@ -7,6 +7,9 @@ class Env:
         self.reset()
         self.action_space_n = 128
 
+    def get_valid_actions(self, playerId):
+        return json.loads(check_output("echo " + self.state + " | ../santorini/santorini -u | ../santorini/santorini -o " + str(playerId), shell=True, encoding='utf8').strip())
+
     def step(self, actionId):
         new_state = check_output("echo " + self.state + " | ../santorini/santorini -u | ../santorini/santorini -a " +
                                  str(actionId) + " | ../santorini/santorini -v", shell=True, encoding='utf8').strip()
@@ -21,7 +24,7 @@ class Env:
 
         # Check status after my turn
         if game_status['you']:
-            return self.state, 100, True
+            return self.state, 0, True
         elif game_status['them']:
             return self.state, -100, True
 
@@ -32,7 +35,7 @@ class Env:
 
         # Check status after opponent turn
         if game_status['you']:
-            return self.state, 100, True
+            return self.state, 0, True
         elif game_status['them']:
             return self.state, -100, True
 
@@ -46,5 +49,10 @@ class Env:
         self.state = self.get_starting_state()
 
     def game_status(self):
-        return json.loads(check_output(
+        my_valid_actions = self.get_valid_actions(0)
+        their_valid_actions = self.get_valid_actions(1)
+        status = json.loads(check_output(
             "echo " + self.state + " | ../santorini/santorini -u | ../santorini/santorini --state", shell=True, encoding='utf8'))
+        status["you"] = status["you"] or len(their_valid_actions) == 0
+        status["them"] = status["them"] or len(my_valid_actions) == 0
+        return status

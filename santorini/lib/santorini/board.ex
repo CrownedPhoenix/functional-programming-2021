@@ -69,10 +69,11 @@ defmodule Santorini.Board do
   @spec update_space(board :: Board.t(), row :: Int, col :: Int, fun :: (val :: Int -> Int)) ::
           Board.t()
   def update_space(board, row, col, fun) do
-    with true <- row in 0..4,
-         true <- col in 0..4,
+    with true <- valid_space(board, row, col),
          current_value <- Enum.at(board.spaces, row) |> Enum.at(col),
-         true <- current_value < 4 do
+         true <- current_value < 4,
+         true <-
+           space_unoccupied(board, row, col) do
       update_spaces(
         board,
         List.update_at(board.spaces, row, fn r ->

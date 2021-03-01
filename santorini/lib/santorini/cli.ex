@@ -14,6 +14,7 @@ defmodule Santorini.CLI do
           unvectorize: :boolean,
           gen: :boolean,
           turn: :boolean,
+          options: :integer,
           state: :boolean
         ],
         aliases: [
@@ -23,7 +24,8 @@ defmodule Santorini.CLI do
           v: :vectorize,
           u: :unvectorize,
           g: :gen,
-          t: :turn
+          t: :turn,
+          o: :options
         ]
       )
 
@@ -75,6 +77,13 @@ defmodule Santorini.CLI do
         |> BoardUtils.take_turn()
         |> Board.swap_players()
         |> BoardUtils.to_json()
+        |> IO.puts()
+
+      [options: playerId] ->
+        IO.read(:stdio, :line)
+        |> BoardUtils.from_json()
+        |> BoardUtils.get_action_options(playerId)
+        |> Jason.encode!()
         |> IO.puts()
 
       _ ->

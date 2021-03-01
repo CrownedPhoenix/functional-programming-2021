@@ -144,6 +144,14 @@ defmodule Santorini.BoardUtils do
     |> Board.next_turn()
   end
 
+  def get_action_options(board, playerId) do
+    0..127
+    |> Stream.filter(fn actionId ->
+      board != action(board, actionId + playerId * 128)
+    end)
+    |> Enum.to_list()
+  end
+
   def unfix_players_list(board) do
     Board.update_players(
       board,
