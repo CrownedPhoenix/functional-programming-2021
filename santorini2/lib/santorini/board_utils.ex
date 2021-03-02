@@ -24,35 +24,6 @@ defmodule Santorini.BoardUtils do
     |> from_json()
   end
 
-  @spec vectorize(board :: Board.t()) :: Board.t()
-  def vectorize(board) do
-    Enum.concat(board.spaces, board.players)
-    |> List.flatten()
-    |> Enum.join("")
-  end
-
-  @spec unvectorize(board :: String) :: Board.t()
-  def unvectorize(board_vector) do
-    {spaces_vector, players_vector} = String.split_at(board_vector, -8)
-
-    spaces =
-      spaces_vector
-      |> String.split("", trim: true)
-      |> Stream.map(&String.to_integer(&1))
-      |> Stream.chunk_every(5)
-      |> Enum.to_list()
-
-    players =
-      players_vector
-      |> String.split("", trim: true)
-      |> Stream.map(&String.to_integer(&1))
-      |> Stream.chunk_every(4)
-      |> Stream.map(&Enum.chunk_every(&1, 2))
-      |> Enum.to_list()
-
-    Board.new() |> Board.update_spaces(spaces) |> Board.update_players(players)
-  end
-
   @spec draw(board :: Board.t()) :: Board.t()
   def draw(board) do
     Stream.with_index(board.spaces)
@@ -60,10 +31,10 @@ defmodule Santorini.BoardUtils do
       Stream.with_index(row)
       |> Stream.each(fn {val, col_num} ->
         cond do
-          [row_num, col_num] in Enum.at(board.players, 0) ->
+          [row_num, col_num] in Enum.at(board.players, 0).tokens ->
             IO.write(IO.ANSI.format([:blue_background, :white, "#{val}", :reset, " "]))
 
-          [row_num, col_num] in Enum.at(board.players, 1) ->
+          [row_num, col_num] in Enum.at(board.players, 1).tokens ->
             IO.write(IO.ANSI.format([:white_background, :black, "#{val}", :reset, " "]))
 
           true ->
@@ -75,6 +46,20 @@ defmodule Santorini.BoardUtils do
       IO.write("\n")
     end)
     |> Stream.run()
+
+    IO.write(
+      IO.ANSI.format([:blue_background, :white, "#{Enum.at(board.players, 0).card}", :reset, "\n"])
+    )
+
+    IO.write(
+      IO.ANSI.format([
+        :white_background,
+        :black,
+        "#{Enum.at(board.players, 1).card}",
+        :reset,
+        "\n"
+      ])
+    )
   end
 
   @spec action(board :: Board.t(), actionId :: Int) :: Board.t()

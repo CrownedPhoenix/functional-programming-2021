@@ -9,22 +9,92 @@ defmodule Santorini.Board do
         }
 
   def new() do
-    %Santorini.Board{players: [], spaces: List.duplicate(List.duplicate(0, 5), 5), turn: 0}
+    %Santorini.Board{
+      players: [%{card: "", tokens: []}, %{card: "", tokens: []}],
+      spaces: List.duplicate(List.duplicate(0, 5), 5),
+      turn: 0
+    }
   end
 
-  @spec update_players(board :: Board.t(), players :: [[[0..4]]]) :: Board.t()
-  def update_players(board, players) do
+  @spec set_players(board :: Board.t(), players :: [%{card: String.t(), tokens: [[0..4]]}]) ::
+          Board.t()
+  def set_players(board, players) do
     %Santorini.Board{players: players, spaces: board.spaces, turn: board.turn}
   end
 
-  @spec update_spaces(board :: Board.t(), spaces :: [[1..4]]) :: Board.t()
-  def update_spaces(board, spaces) do
+  @spec set_spaces(board :: Board.t(), spaces :: [[0..4]]) :: Board.t()
+  def set_spaces(board, spaces) do
     %Santorini.Board{players: board.players, spaces: spaces, turn: board.turn}
   end
 
-  @spec update_turn(board :: Board.t(), turn :: Int) :: Board.t()
-  def update_turn(board, turn) do
+  @spec set_turn(board :: Board.t(), turn :: Int) :: Board.t()
+  def set_turn(board, turn) do
     %Santorini.Board{players: board.players, spaces: board.spaces, turn: turn}
+  end
+
+  @spec set_player_card(board :: Board.t(), player_id :: Int, card :: String.t()) :: Board.t()
+  def set_player_card(board, player_id, card) do
+    set_players(
+      board,
+      List.update_at(board.players, player_id, fn %{card: _, tokens: tokens} ->
+        %{card: card, tokens: tokens}
+      end)
+    )
+  end
+
+  @spec set_player_tokens(board :: Board.t(), player_id :: Int, tokens :: [[0..4]]) :: Board.t()
+  def set_player_tokens(board, player_id, tokens) do
+    set_players(
+      board,
+      List.update_at(board.players, player_id, fn %{card: card, tokens: _} ->
+        %{card: card, tokens: tokens}
+      end)
+    )
+  end
+
+  @spec update_players(
+          board :: Board.t(),
+          fun ::
+            ([%{card: String.t(), tokens: [[0..4]]}] -> [%{card: String.t(), tokens: [[0..4]]}])
+        ) ::
+          Board.t()
+  def update_players(board, fun) do
+    set_players(board, fun.(board.players))
+  end
+
+  @spec update_spaces(board :: Board.t(), fun :: ([[0..4]] -> [[0..4]])) :: Board.t()
+  def update_spaces(board, fun) do
+    set_spaces(board, fun.(board.spaces))
+  end
+
+  @spec update_turn(board :: Board.t(), fun :: (Int -> Int)) :: Board.t()
+  def update_turn(board, fun) do
+    set_turn(board, fun.(board.turn))
+  end
+
+  @spec update_player_card(
+          board :: Board.t(),
+          player_id :: Int,
+          fun :: (String.t() -> String.t())
+        ) :: Board.t()
+  def update_player_card(board, player_id, fun) do
+    update_players(
+      board,
+      List.update_at(board.players, player_id, fn %{card: card, tokens: tokens} ->
+        %{card: fun.(card), tokens: tokens}
+      end)
+    )
+  end
+
+  @spec update_player_tokens(board :: Board.t(), player_id :: Int, fun :: ([[0..4]] -> [[0..4]])) ::
+          Board.t()
+  def update_player_tokens(board, player_id, fun) do
+    update_players(
+      board,
+      List.update_at(board.players, player_id, fn %{card: card, tokens: tokens} ->
+        %{card: card, tokens: fun.(tokens)}
+      end)
+    )
   end
 
   @spec update_worker(
@@ -34,25 +104,22 @@ defmodule Santorini.Board do
           fun :: (row :: Int, col :: Int -> [0..4])
         ) :: Board.t()
   def update_worker(board, player_id, worker_id, fun) do
-    List.update_at(board.players, player_id, fn player ->
-      %{
-        card: player.card,
-        tokens:
-          List.update_at(player.tokens, worker_id, fn worker ->
-            origin_r = Enum.at(worker, 0)
-            origin_c = Enum.at(worker, 1)
-            [new_r, new_c] = fun.(origin_r, origin_c)
+    set_player_tokens(
+      board,
+      player_id,
+      List.update_at(player.tokens, worker_id, fn worker ->
+        origin_r = Enum.at(worker, 0)
+        origin_c = Enum.at(worker, 1)
+        [new_r, new_c] = fun.(origin_r, origin_c)
 
-            if valid_space(board, new_r, new_c) and space_unoccupied(board, new_r, new_c) and
-                 can_move_between(board, origin_r, origin_c, new_r, new_c) do
-              [new_r, new_c]
-            else
-              [origin_r, origin_c]
-            end
-          end)
-      }
-    end)
-    |> (&update_players(board, &1)).()
+        if valid_space(board, new_r, new_c) and space_unoccupied(board, new_r, new_c) and
+             can_move_between(board, origin_r, origin_c, new_r, new_c) do
+          [new_r, new_c]
+        else
+          [origin_r, origin_c]
+        end
+      end)
+    )
   end
 
   @spec valid_space(board :: Board.t(), r :: Int, c :: Int) :: Boolean
@@ -83,7 +150,7 @@ defmodule Santorini.Board do
          true <- current_value < 4,
          true <-
            space_unoccupied(board, row, col) do
-      update_spaces(
+      set_spaces(
         board,
         List.update_at(board.spaces, row, fn r ->
           List.update_at(r, col, fun)
@@ -178,7 +245,7 @@ defmodule Santorini.Board do
 
   @spec next_turn(board :: Board.t()) :: Board.t()
   def next_turn(board) do
-    update_turn(board, board.turn + 1)
+    set_turn(board, board.turn + 1)
   end
 
   def swap_players(board) do

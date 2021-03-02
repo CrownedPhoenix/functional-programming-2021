@@ -1,8 +1,11 @@
 defmodule Santorini.CLI do
+  use Bakeware.Script
+
   import OptionParser
   alias Santorini.Board, as: Board
   alias Santorini.BoardUtils, as: BoardUtils
 
+  @impl Bakeware.Script
   def main(args \\ []) do
     {parsed, _, _} =
       parse(args,
@@ -10,8 +13,6 @@ defmodule Santorini.CLI do
           action: :integer,
           draw: :boolean,
           swap_players: :boolean,
-          vectorize: :boolean,
-          unvectorize: :boolean,
           gen: :boolean,
           turn: :boolean,
           options: :integer,
@@ -21,8 +22,6 @@ defmodule Santorini.CLI do
           a: :action,
           d: :draw,
           s: :swap_players,
-          v: :vectorize,
-          u: :unvectorize,
           g: :gen,
           t: :turn,
           o: :options
@@ -48,16 +47,6 @@ defmodule Santorini.CLI do
 
       [draw: true] ->
         IO.read(:stdio, :line) |> BoardUtils.from_json() |> BoardUtils.draw()
-
-      [vectorize: true] ->
-        IO.read(:stdio, :line) |> BoardUtils.from_json() |> BoardUtils.vectorize() |> IO.puts()
-
-      [unvectorize: true] ->
-        IO.read(:stdio, :line)
-        |> String.trim()
-        |> BoardUtils.unvectorize()
-        |> BoardUtils.to_json()
-        |> IO.puts()
 
       [gen: true] ->
         BoardUtils.gen_random_starting_board()
