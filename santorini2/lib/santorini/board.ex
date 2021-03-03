@@ -91,10 +91,24 @@ defmodule Santorini.Board do
   def update_player_tokens(board, player_id, fun) do
     update_players(
       board,
-      List.update_at(board.players, player_id, fn %{card: card, tokens: tokens} ->
-        %{card: card, tokens: fun.(tokens)}
-      end)
+      fn players ->
+        List.update_at(players, player_id, fn %{card: card, tokens: tokens} ->
+          %{card: card, tokens: fun.(tokens)}
+        end)
+      end
     )
+  end
+
+  @spec update_player_token(
+          board :: Board.t(),
+          player_id :: Int,
+          token_id :: Int,
+          fun :: ([0..4] -> [0..4])
+        ) :: Board.t()
+  def update_player_token(board, player_id, token_id, fun) do
+    update_player_tokens(board, player_id, fn tokens ->
+      List.update_at(tokens, token_id, fun)
+    end)
   end
 
   @spec update_worker(
@@ -104,22 +118,18 @@ defmodule Santorini.Board do
           fun :: (row :: Int, col :: Int -> [0..4])
         ) :: Board.t()
   def update_worker(board, player_id, worker_id, fun) do
-    set_player_tokens(
-      board,
-      player_id,
-      List.update_at(player.tokens, worker_id, fn worker ->
-        origin_r = Enum.at(worker, 0)
-        origin_c = Enum.at(worker, 1)
-        [new_r, new_c] = fun.(origin_r, origin_c)
+    update_player_token(board, player_id, worker_id, fn worker ->
+      origin_r = Enum.at(worker, 0)
+      origin_c = Enum.at(worker, 1)
+      [new_r, new_c] = fun.(origin_r, origin_c)
 
-        if valid_space(board, new_r, new_c) and space_unoccupied(board, new_r, new_c) and
-             can_move_between(board, origin_r, origin_c, new_r, new_c) do
-          [new_r, new_c]
-        else
-          [origin_r, origin_c]
-        end
-      end)
-    )
+      if valid_space(board, new_r, new_c) and space_unoccupied(board, new_r, new_c) and
+           can_move_between(board, origin_r, origin_c, new_r, new_c) do
+        [new_r, new_c]
+      else
+        [origin_r, origin_c]
+      end
+    end)
   end
 
   @spec valid_space(board :: Board.t(), r :: Int, c :: Int) :: Boolean
@@ -162,7 +172,10 @@ defmodule Santorini.Board do
   end
 
   def space_unoccupied(board, row, col) do
-    [row, col] not in Enum.concat(board.players)
+    [row, col] not in Enum.concat(
+      Enum.at(board.players, 0).tokens,
+      Enum.at(board.players, 1).tokens
+    )
   end
 
   @spec build(board :: Board.t(), player_id :: Int, worker_id :: Int, dir :: Int) ::
@@ -202,6 +215,9 @@ defmodule Santorini.Board do
       # Build Up-Left
       7 ->
         update_space(board, row - 1, col - 1, &(&1 + 1))
+
+      _ ->
+        board
     end
   end
 
@@ -240,6 +256,9 @@ defmodule Santorini.Board do
       # Move Up-Left
       7 ->
         update_worker(board, player_id, worker_id, fn row, col -> [row - 1, col - 1] end)
+
+      _ ->
+        board
     end
   end
 
@@ -249,6 +268,6 @@ defmodule Santorini.Board do
   end
 
   def swap_players(board) do
-    %Santorini.Board{players: Enum.reverse(board.players), spaces: board.spaces, turn: board.turn}
+    update_players(board, &Enum.reverse/1)
   end
 end

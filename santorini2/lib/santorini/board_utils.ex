@@ -91,7 +91,7 @@ defmodule Santorini.BoardUtils do
       |> Stream.chunk_every(2, 2)
       |> Enum.to_list()
 
-    Board.new() |> Board.update_players(random_players)
+    Board.new() |> Board.set_players(random_players)
   end
 
   def game_state(board) do
@@ -140,36 +140,40 @@ defmodule Santorini.BoardUtils do
   def unfix_players_list(board) do
     Board.update_players(
       board,
-      board.players
-      |> Stream.map(fn %{card: card, tokens: tokens} ->
-        %{
-          card: card,
-          tokens:
-            Stream.map(tokens, fn locs ->
-              Stream.map(locs, fn val -> val + 1 end) |> Enum.to_list()
-            end)
-            |> Enum.to_list()
-        }
-      end)
-      |> Enum.to_list()
+      fn players ->
+        players
+        |> Stream.map(fn %{card: card, tokens: tokens} ->
+          %{
+            card: card,
+            tokens:
+              Stream.map(tokens, fn locs ->
+                Stream.map(locs, fn val -> val + 1 end) |> Enum.to_list()
+              end)
+              |> Enum.to_list()
+          }
+        end)
+        |> Enum.to_list()
+      end
     )
   end
 
   def fix_players_list(board) do
     Board.update_players(
       board,
-      board.players
-      |> Stream.map(fn %{card: card, tokens: tokens} ->
-        %{
-          card: card,
-          tokens:
-            Stream.map(tokens, fn locs ->
-              Stream.map(locs, fn val -> val - 1 end) |> Enum.to_list()
-            end)
-            |> Enum.to_list()
-        }
-      end)
-      |> Enum.to_list()
+      fn players ->
+        players
+        |> Stream.map(fn %{card: card, tokens: tokens} ->
+          %{
+            card: card,
+            tokens:
+              Stream.map(tokens, fn locs ->
+                Stream.map(locs, fn val -> val - 1 end) |> Enum.to_list()
+              end)
+              |> Enum.to_list()
+          }
+        end)
+        |> Enum.to_list()
+      end
     )
   end
 end
