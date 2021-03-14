@@ -52,6 +52,19 @@ defmodule Santorini.Board do
     )
   end
 
+  def get_player_tokens(board, player_id) do
+    Enum.at(board, player_id).tokens
+  end
+
+  def get_opponent_tokens(board, player_id) do
+    opponent_id = get_opponent_id(board, player_id)
+    Enum.at(board.players, opponent_id).tokens
+  end
+
+  def get_opponent_id(board, player_id) do
+    rem(player_id + 1, 2)
+  end
+
   @spec update_players(
           board :: Board.t(),
           fun ::
@@ -67,6 +80,14 @@ defmodule Santorini.Board do
     set_spaces(board, fun.(board.spaces))
   end
 
+  def update_space(board, row, col, fun) do
+    update_spaces(board, fn spaces ->
+      List.update_at(spaces, row, fn r ->
+        List.update_at(r, col, fun)
+      end)
+    end)
+  end
+
   @spec update_turn(board :: Board.t(), fun :: (Int -> Int)) :: Board.t()
   def update_turn(board, fun) do
     set_turn(board, fun.(board.turn))
@@ -78,7 +99,7 @@ defmodule Santorini.Board do
           fun :: (String.t() -> String.t())
         ) :: Board.t()
   def update_player_card(board, player_id, fun) do
-    update_players(
+    set_players(
       board,
       List.update_at(board.players, player_id, fn %{card: card, tokens: tokens} ->
         %{card: fun.(card), tokens: tokens}
@@ -111,27 +132,6 @@ defmodule Santorini.Board do
     end)
   end
 
-  @spec update_worker(
-          board :: Board.t(),
-          player_id :: Int,
-          worker_id :: Int,
-          fun :: (row :: Int, col :: Int -> [0..4])
-        ) :: Board.t()
-  def update_worker(board, player_id, worker_id, fun) do
-    update_player_token(board, player_id, worker_id, fn worker ->
-      origin_r = Enum.at(worker, 0)
-      origin_c = Enum.at(worker, 1)
-      [new_r, new_c] = fun.(origin_r, origin_c)
-
-      if valid_space(board, new_r, new_c) and space_unoccupied(board, new_r, new_c) and
-           can_move_between(board, origin_r, origin_c, new_r, new_c) do
-        [new_r, new_c]
-      else
-        [origin_r, origin_c]
-      end
-    end)
-  end
-
   @spec valid_space(board :: Board.t(), r :: Int, c :: Int) :: Boolean
   def valid_space(_board, r, c) do
     r in 0..4 and c in 0..4
@@ -140,8 +140,25 @@ defmodule Santorini.Board do
   @spec can_move_between(board :: Boart.t(), srcR :: Int, srcC :: Int, dstR :: Int, dstC :: Int) ::
           Boolean
   def can_move_between(board, srcR, srcC, dstR, dstC) do
-    (board.spaces |> Enum.at(srcR) |> Enum.at(srcC)) + 1 >=
-      board.spaces |> Enum.at(dstR) |> Enum.at(dstC)
+    space_height(board, srcR, srcC) + 1 >=
+      space_height(board, dstR, dstC)
+  end
+
+  def space_unoccupied(board, row, col) do
+    [row, col] not in Enum.concat(
+      Enum.at(board.players, 0).tokens,
+      Enum.at(board.players, 1).tokens
+    )
+  end
+
+  @spec space_height(board :: Board.t(), row :: Int, col :: Int) :: Int
+  def space_height(board, row, col) do
+    Enum.at(board.spaces, row) |> Enum.at(col)
+  end
+
+  @spec can_build_at(board :: Board.t(), row :: Int, col :: Int) :: Bool
+  def can_build_at(board, row, col) do
+    space_height(board, row, col) < 4
   end
 
   @spec get_worker_position(board :: Board, player_id :: Int, worker_id :: Int) ::
@@ -152,30 +169,13 @@ defmodule Santorini.Board do
     |> List.to_tuple()
   end
 
-  @spec update_space(board :: Board.t(), row :: Int, col :: Int, fun :: (val :: Int -> Int)) ::
-          Board.t()
-  def update_space(board, row, col, fun) do
-    with true <- valid_space(board, row, col),
-         current_value <- Enum.at(board.spaces, row) |> Enum.at(col),
-         true <- current_value < 4,
-         true <-
-           space_unoccupied(board, row, col) do
-      set_spaces(
-        board,
-        List.update_at(board.spaces, row, fn r ->
-          List.update_at(r, col, fun)
-        end)
-      )
-    else
-      _ -> board
-    end
+  @spec next_turn(board :: Board.t()) :: Board.t()
+  def next_turn(board) do
+    set_turn(board, board.turn + 1)
   end
 
-  def space_unoccupied(board, row, col) do
-    [row, col] not in Enum.concat(
-      Enum.at(board.players, 0).tokens,
-      Enum.at(board.players, 1).tokens
-    )
+  def swap_players(board) do
+    update_players(board, &Enum.reverse/1)
   end
 
   @spec build(board :: Board.t(), player_id :: Int, worker_id :: Int, dir :: Int) ::
@@ -221,53 +221,58 @@ defmodule Santorini.Board do
     end
   end
 
+  @spec build(board :: Board.t(), player_id :: Int, worker_id :: Int, dR :: Int, dC :: Int) ::
+          Board.t()
+  def build(board, player_id, worker_id, dR, dC) do
+    {row, col} = get_worker_position(board, player_id, worker_id)
+    update_space(board, row + dR, col + dC, &(&1 + 1))
+  end
+
   @spec move_worker(board :: Board.t(), player_id :: Int, worker_id :: Int, dir :: Int) ::
           Board.t()
   def move_worker(board, player_id, worker_id, dir) do
     case dir do
       # Move Up
       0 ->
-        update_worker(board, player_id, worker_id, fn row, col -> [row - 1, col] end)
+        update_player_token(board, player_id, worker_id, fn row, col -> [row - 1, col] end)
 
       # Move Up-Right
       1 ->
-        update_worker(board, player_id, worker_id, fn row, col -> [row - 1, col + 1] end)
+        update_player_token(board, player_id, worker_id, fn row, col -> [row - 1, col + 1] end)
 
       # Move Right
       2 ->
-        update_worker(board, player_id, worker_id, fn row, col -> [row, col + 1] end)
+        update_player_token(board, player_id, worker_id, fn row, col -> [row, col + 1] end)
 
       # Move Down-Right
       3 ->
-        update_worker(board, player_id, worker_id, fn row, col -> [row + 1, col + 1] end)
+        update_player_token(board, player_id, worker_id, fn row, col -> [row + 1, col + 1] end)
 
       # Move Down
       4 ->
-        update_worker(board, player_id, worker_id, fn row, col -> [row + 1, col] end)
+        update_player_token(board, player_id, worker_id, fn row, col -> [row + 1, col] end)
 
       # Move Down-Left
       5 ->
-        update_worker(board, player_id, worker_id, fn row, col -> [row + 1, col - 1] end)
+        update_player_token(board, player_id, worker_id, fn row, col -> [row + 1, col - 1] end)
 
       # Move Left
       6 ->
-        update_worker(board, player_id, worker_id, fn row, col -> [row, col - 1] end)
+        update_player_token(board, player_id, worker_id, fn row, col -> [row, col - 1] end)
 
       # Move Up-Left
       7 ->
-        update_worker(board, player_id, worker_id, fn row, col -> [row - 1, col - 1] end)
+        update_player_token(board, player_id, worker_id, fn row, col -> [row - 1, col - 1] end)
 
       _ ->
         board
     end
   end
 
-  @spec next_turn(board :: Board.t()) :: Board.t()
-  def next_turn(board) do
-    set_turn(board, board.turn + 1)
-  end
-
-  def swap_players(board) do
-    update_players(board, &Enum.reverse/1)
+  @spec move_worker(board :: Board.t(), player_id :: Int, worker_id :: Int, dR :: Int, dC :: Int) ::
+          Board.t()
+  def move_worker(board, player_id, worker_id, dR, dC) do
+    {row, col} = get_worker_position(board, player_id, worker_id)
+    update_player_token(board, player_id, worker_id, fn _ -> [row + dR, col + dC] end)
   end
 end

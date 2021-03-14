@@ -49,7 +49,7 @@ defmodule Santorini.CLI do
         IO.read(:stdio, :line) |> BoardUtils.from_json() |> BoardUtils.draw()
 
       [gen: true] ->
-        BoardUtils.gen_random_starting_board()
+        BoardUtils.gen_random_starting_board("Artemis", "Apollo")
         |> BoardUtils.to_json()
         |> IO.puts()
 
@@ -90,7 +90,7 @@ defmodule Santorini.CLI do
 
           IO.read(:stdio, :line) |> BoardUtils.from_json()
 
-        [%{card: c1}, %{card: c2, tokens: p2_tokens}] ->
+        [%{card: _}, %{card: _, tokens: _}] ->
           other = Enum.at(players, 0)
 
           mine =

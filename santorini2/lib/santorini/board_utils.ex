@@ -64,11 +64,11 @@ defmodule Santorini.BoardUtils do
 
   @spec action(board :: Board.t(), actionId :: Int) :: Board.t()
   def action(board, actionId) do
-    <<playerId::1, workerId::1, moveDir::3, buildDir::3>> = <<actionId>>
+    <<player_id::1, workerId::1, moveDir::3, buildDir::3>> = <<actionId>>
 
-    with moved <- Board.move_worker(board, playerId, workerId, moveDir),
+    with moved <- Board.move_worker(board, player_id, workerId, moveDir),
          false <- moved == board,
-         built <- Board.build(moved, playerId, workerId, buildDir),
+         built <- Board.build(moved, player_id, workerId, buildDir),
          false <- built == moved do
       built
     else
@@ -76,8 +76,8 @@ defmodule Santorini.BoardUtils do
     end
   end
 
-  @spec gen_random_starting_board() :: Board.t()
-  def gen_random_starting_board() do
+  @spec gen_random_starting_board(p1_card :: String.t(), p2_card :: String.t()) :: Board.t()
+  def gen_random_starting_board(p1_card, p2_card) do
     random_players =
       Stream.transform(1..4, [], fn _, chosen ->
         choice =
@@ -89,9 +89,13 @@ defmodule Santorini.BoardUtils do
         {choice, chosen ++ choice}
       end)
       |> Stream.chunk_every(2, 2)
+      |> Stream.map(fn tokens -> %{card: "", tokens: tokens} end)
       |> Enum.to_list()
 
-    Board.new() |> Board.set_players(random_players)
+    Board.new()
+    |> Board.set_players(random_players)
+    |> Board.set_player_card(0, p1_card)
+    |> Board.set_player_card(1, p2_card)
   end
 
   def game_state(board) do
@@ -129,10 +133,47 @@ defmodule Santorini.BoardUtils do
     |> Board.next_turn()
   end
 
-  def get_action_options(board, playerId) do
-    0..127
-    |> Stream.filter(fn actionId ->
-      board != action(board, actionId + playerId * 128)
+  def get_action_options(board, player_id) do
+    card = Enum.at(board.players, player_id).card
+
+    Enum.concat(
+      Module.concat(Santorini.Cards, card).get_action_options(board, player_id, 0),
+      Module.concat(Santorini.Cards, card).get_action_options(board, player_id, 1)
+    )
+  end
+
+  def get_surrounding_spaces(board, row, col) do
+    for dR <- [-1, 0, 1],
+        dC <- [-1, 0, 1],
+        {dR, dC} != {0, 0},
+        Board.valid_space(board, row + dR, col + dC),
+        do: {row + dR, col + dC}
+  end
+
+  def get_surrounding_offsets(board, row, col) do
+    for dR <- [-1, 0, 1],
+        dC <- [-1, 0, 1],
+        {dR, dC} != {0, 0},
+        Board.valid_space(board, row + dR, col + dC),
+        do: {dR, dC}
+  end
+
+  @spec get_available_move_offsets(board :: Board.t(), row :: Int, col :: Int) :: [{Int, Int}]
+  def get_available_move_offsets(board, row, col) do
+    get_surrounding_offsets(board, row, col)
+    |> Stream.filter(fn {dR, dC} ->
+      Board.can_move_between(board, row, col, row + dR, col + dC) and
+        Board.space_unoccupied(board, row + dR, col + dC)
+    end)
+    |> Enum.to_list()
+  end
+
+  @spec get_available_build_offsets(board :: Board.t(), row :: Int, col :: Int) :: [{Int, Int}]
+  def get_available_build_offsets(board, row, col) do
+    get_surrounding_offsets(board, row, col)
+    |> Stream.filter(fn {dR, dC} ->
+      Board.can_build_at(board, row + dR, col + dC) and
+        Board.space_unoccupied(board, row + dR, col + dC)
     end)
     |> Enum.to_list()
   end

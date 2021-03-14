@@ -1,6 +1,7 @@
 # Santorini2
 
-**TODO: Add description**
+## Description
+Second version of Santorini Player using Cards.
 
 ## Installation
 
