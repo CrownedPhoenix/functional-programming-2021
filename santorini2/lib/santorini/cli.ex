@@ -17,7 +17,8 @@ defmodule Santorini.CLI do
           turn: :boolean,
           options: :integer,
           state: :boolean,
-          test: :boolean
+          test: :boolean,
+          strategy: :string
         ],
         aliases: [
           a: :action,
@@ -69,9 +70,13 @@ defmodule Santorini.CLI do
         |> BoardUtils.to_json()
         |> IO.puts()
 
+      [test: true, strategy: strat] ->
+        IO.write("[{\"card\":\"Demeter\"},{\"card\":\"Minotaur\"}]\n")
+        play(String.to_atom(strat))
+
       [test: true] ->
         IO.write("[{\"card\":\"Demeter\"},{\"card\":\"Minotaur\"}]\n")
-        play()
+        play(:random)
 
       [options: playerId] ->
         IO.read(:stdio, :line)
@@ -80,12 +85,15 @@ defmodule Santorini.CLI do
         |> Jason.encode!()
         |> IO.puts()
 
+      [strategy: strat] ->
+        play(String.to_atom(strat))
+
       _ ->
-        play()
+        play(:random)
     end
   end
 
-  def play() do
+  def play(strategy) do
     players = IO.read(:stdio, :line) |> Jason.decode!([{:keys, :atoms}])
 
     b =
@@ -116,7 +124,7 @@ defmodule Santorini.CLI do
 
     Stream.unfold(b, fn b ->
       b
-      |> BoardUtils.take_turn()
+      |> BoardUtils.take_turn(strategy)
       |> BoardUtils.draw(:stderr)
       |> BoardUtils.to_json()
       |> IO.puts()

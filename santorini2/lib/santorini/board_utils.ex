@@ -126,17 +126,42 @@ defmodule Santorini.BoardUtils do
     |> Map.new()
   end
 
-  def take_turn(board) do
-    options = get_action_options(board, 0)
-
-    {wins?, board, path} = Enum.find(options, Enum.random(options), &elem(&1, 0))
+  def take_turn(board, strategy) do
+    choose_option(board, 0, strategy)
+    {wins?, board, path} = choose_option(board, 0, strategy)
 
     if wins? do
+      draw(board, :stderr)
       raise "Winner!"
     else
       Board.next_turn(board)
       |> Board.swap_players()
     end
+  end
+
+  def choose_option(board, player_id, strategy) do
+    case strategy do
+      :random ->
+        options = get_action_options(board, 0)
+
+        Enum.find(options, Enum.random(options), &elem(&1, 0))
+
+      :semismart ->
+        semi_smart_choice(board, player_id)
+    end
+  end
+
+  def semi_smart_choice(board, player_id) do
+    options = get_action_options(board, 0)
+
+    Enum.find(
+      options,
+      Enum.min_by(options, fn {wins, delta_board, path} ->
+        opponent_options = get_action_options(delta_board, 1)
+        Enum.count(opponent_options, fn {op_wins, _, _} -> op_wins end)
+      end),
+      fn {wins, _, _} -> wins end
+    )
   end
 
   def get_action_options(board, player_id) do
