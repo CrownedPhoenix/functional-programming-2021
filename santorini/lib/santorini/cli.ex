@@ -60,7 +60,7 @@ defmodule Santorini.CLI do
         |> IO.puts()
 
       [gen: true] ->
-        BoardUtils.gen_random_starting_board()
+        BoardUtils.gen_random_starting_board("Artemis", "Hera")
         |> BoardUtils.to_json()
         |> IO.puts()
 

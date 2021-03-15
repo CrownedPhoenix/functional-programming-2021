@@ -16,7 +16,8 @@ defmodule Santorini.CLI do
           gen: :boolean,
           turn: :boolean,
           options: :integer,
-          state: :boolean
+          state: :boolean,
+          test: :boolean
         ],
         aliases: [
           a: :action,
@@ -68,6 +69,10 @@ defmodule Santorini.CLI do
         |> BoardUtils.to_json()
         |> IO.puts()
 
+      [test: true] ->
+        IO.write("[{\"card\":\"Demeter\"},{\"card\":\"Minotaur\"}]\n")
+        play()
+
       [options: playerId] ->
         IO.read(:stdio, :line)
         |> BoardUtils.from_json()
@@ -85,28 +90,34 @@ defmodule Santorini.CLI do
 
     b =
       case players do
-        [%{card: c1}, %{card: c2}] ->
-          [%{card: c2}, %{card: c1, tokens: [[3, 3], [1, 3]]}] |> Jason.encode!() |> IO.puts()
+        [%{card: my_card}, %{card: _, tokens: _}] ->
+          other = Enum.at(players, 1)
 
-          IO.read(:stdio, :line) |> BoardUtils.from_json()
-
-        [%{card: _}, %{card: _, tokens: _}] ->
-          other = Enum.at(players, 0)
-
-          mine =
-            Stream.repeatedly(fn -> [:rand.uniform(5) - 1, :rand.uniform(5) - 1] end)
+          my_tokens =
+            Stream.repeatedly(fn -> [Enum.random(0..4), Enum.random(0..4)] end)
             |> Stream.filter(fn pos -> pos not in other end)
             |> Stream.take(2)
             |> Enum.to_list()
 
-          Board.new() |> Board.update_players(players ++ [mine]) |> Board.update_turn(3)
+          Board.new()
+          |> Board.set_players([other, %{card: my_card, tokens: my_tokens}])
+          |> Board.update_turn(fn _ -> 3 end)
+
+        [%{card: c1}, %{card: c2}] ->
+          starting_tokens =
+            Stream.repeatedly(fn -> [Enum.random(0..4), Enum.random(0..4)] end)
+            |> Stream.take(2)
+            |> Enum.to_list()
+
+          [%{card: c2}, %{card: c1, tokens: starting_tokens}] |> Jason.encode!() |> IO.puts()
+
+          IO.read(:stdio, :line) |> BoardUtils.from_json()
       end
 
     Stream.unfold(b, fn b ->
-      # TODO: Determine optimal actionId
-
       b
       |> BoardUtils.take_turn()
+      |> BoardUtils.draw(:stderr)
       |> BoardUtils.to_json()
       |> IO.puts()
 

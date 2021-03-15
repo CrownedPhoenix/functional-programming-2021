@@ -24,34 +24,36 @@ defmodule Santorini.BoardUtils do
     |> from_json()
   end
 
-  @spec draw(board :: Board.t()) :: Board.t()
-  def draw(board) do
+  @spec draw(board :: Board.t(), device :: String.t()) :: Board.t()
+  def draw(board, device \\ :stdio) do
     Stream.with_index(board.spaces)
     |> Stream.each(fn {row, row_num} ->
       Stream.with_index(row)
       |> Stream.each(fn {val, col_num} ->
         cond do
           [row_num, col_num] in Enum.at(board.players, 0).tokens ->
-            IO.write(IO.ANSI.format([:blue_background, :white, "#{val}", :reset, " "]))
+            IO.write(device, IO.ANSI.format([:blue_background, :white, "#{val}", :reset, " "]))
 
           [row_num, col_num] in Enum.at(board.players, 1).tokens ->
-            IO.write(IO.ANSI.format([:white_background, :black, "#{val}", :reset, " "]))
+            IO.write(device, IO.ANSI.format([:white_background, :black, "#{val}", :reset, " "]))
 
           true ->
-            IO.write(IO.ANSI.format(["#{val} "]))
+            IO.write(device, IO.ANSI.format(["#{val} "]))
         end
       end)
       |> Stream.run()
 
-      IO.write("\n")
+      IO.write(device, "\n")
     end)
     |> Stream.run()
 
     IO.write(
+      device,
       IO.ANSI.format([:blue_background, :white, "#{Enum.at(board.players, 0).card}", :reset, "\n"])
     )
 
     IO.write(
+      device,
       IO.ANSI.format([
         :white_background,
         :black,
@@ -60,6 +62,8 @@ defmodule Santorini.BoardUtils do
         "\n"
       ])
     )
+
+    board
   end
 
   @spec action(board :: Board.t(), actionId :: Int) :: Board.t()
@@ -123,14 +127,16 @@ defmodule Santorini.BoardUtils do
   end
 
   def take_turn(board) do
-    Stream.repeatedly(fn ->
-      action(board, Enum.random(0..127))
-    end)
-    |> Stream.filter(fn new_state -> new_state != board end)
-    |> Stream.take(1)
-    |> Enum.to_list()
-    |> List.first()
-    |> Board.next_turn()
+    options = get_action_options(board, 0)
+
+    {wins?, board, path} = Enum.find(options, Enum.random(options), &elem(&1, 0))
+
+    if wins? do
+      raise "Winner!"
+    else
+      Board.next_turn(board)
+      |> Board.swap_players()
+    end
   end
 
   def get_action_options(board, player_id) do
@@ -163,7 +169,8 @@ defmodule Santorini.BoardUtils do
     get_surrounding_offsets(board, row, col)
     |> Stream.filter(fn {dR, dC} ->
       Board.can_move_between(board, row, col, row + dR, col + dC) and
-        Board.space_unoccupied(board, row + dR, col + dC)
+        Board.space_unoccupied(board, row + dR, col + dC) and
+        Board.space_height(board, row + dR, col + dC) < 4
     end)
     |> Enum.to_list()
   end
