@@ -125,7 +125,7 @@ defmodule Santorini.CLI do
     Stream.unfold(b, fn b ->
       b
       |> BoardUtils.take_turn(strategy)
-      |> BoardUtils.draw(:stderr)
+      # |> BoardUtils.draw(:stderr)
       |> BoardUtils.to_json()
       |> IO.puts()
 

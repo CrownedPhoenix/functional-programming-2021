@@ -137,6 +137,7 @@ defmodule Santorini.BoardUtils do
       Board.next_turn(board)
       |> Board.swap_players()
     end
+
   end
 
   def choose_option(board, player_id, strategy) do
@@ -156,10 +157,12 @@ defmodule Santorini.BoardUtils do
 
     Enum.find(
       options,
-      Enum.min_by(options, fn {wins, delta_board, path} ->
+      Enum.chunk_by(options, fn {wins, delta_board, path} ->
         opponent_options = get_action_options(delta_board, 1)
         Enum.count(opponent_options, fn {op_wins, _, _} -> op_wins end)
-      end),
+      end)
+      |> List.first()
+      |> List.first(),
       fn {wins, _, _} -> wins end
     )
   end
