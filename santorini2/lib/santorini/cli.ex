@@ -89,7 +89,7 @@ defmodule Santorini.CLI do
         play(String.to_atom(strat))
 
       _ ->
-        play(:random)
+        play(:semismart)
     end
   end
 
