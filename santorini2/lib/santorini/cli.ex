@@ -95,7 +95,6 @@ defmodule Santorini.CLI do
 
   def play(strategy) do
     players = IO.read(:stdio, :line) |> Jason.decode!([{:keys, :atoms}])
-    # IO.inspect(:stderr, players, [])
 
     b =
       case players do
@@ -105,53 +104,35 @@ defmodule Santorini.CLI do
           my_tokens =
             Stream.repeatedly(fn -> [Enum.random(1..5), Enum.random(1..5)] end)
             |> Stream.filter(fn pos -> pos not in other end)
+            |> Stream.uniq()
             |> Stream.take(2)
             |> Enum.to_list()
 
-          # [%{card: my_card, tokens: my_tokens}, %{card: c2, tokens: t2}]
-          # |> Jason.encode!()
-          # |> IO.puts()
+          [%{card: c2, tokens: t2}, %{card: my_card, tokens: my_tokens}]
+          |> Jason.encode!()
+          |> IO.puts()
 
-          # both_players = IO.read(:stdio, :line) |> Jason.decode!([{:keys, :atoms}])
-
-          Board.new()
-          |> Board.set_players([other, %{card: my_card, tokens: my_tokens}])
-          |> BoardUtils.fix_players_list()
-          |> Board.update_turn(fn _ -> 3 end)
+          IO.read(:stdio, :line) |> BoardUtils.from_json()
 
         [%{card: c1}, %{card: c2}] ->
           starting_tokens =
             Stream.repeatedly(fn -> [Enum.random(1..5), Enum.random(1..5)] end)
+            |> Stream.uniq()
             |> Stream.take(2)
             |> Enum.to_list()
 
-          # [%{card: c2}, %{card: c1, tokens: starting_tokens}]
-          # |> Jason.encode!()
-          # |> (&IO.puts(:stderr, &1)).()
-
           [%{card: c2}, %{card: c1, tokens: starting_tokens}] |> Jason.encode!() |> IO.puts()
 
-          both_players = IO.read(:stdio, :line) |> Jason.decode!([{:keys, :atoms}])
-
-          Board.new()
-          |> Board.set_players(both_players)
-          |> BoardUtils.fix_players_list()
-          |> Board.update_turn(fn _ -> 3 end)
+          IO.read(:stdio, :line)
+          |> BoardUtils.from_json()
       end
 
     Stream.unfold(b, fn b ->
-      # IO.puts(:stderr, "Playing\n")
-      # IO.inspect(:stderr, b, [])
-      # IO.puts(:stderr, BoardUtils.to_json(b))
-      IO.inspect(:stderr, b|> BoardUtils.to_json, [])
-      out =
-        b
-        |> BoardUtils.take_turn(strategy)
-        # |> BoardUtils.draw(:stderr)
-        |> BoardUtils.to_json()
-
-      out |> IO.puts()
-      # IO.puts(:stderr, out)
+      b
+      |> BoardUtils.take_turn(strategy)
+      # |> BoardUtils.draw(:stderr)
+      |> BoardUtils.to_json()
+      |> IO.puts()
 
       {b, BoardUtils.from_json(IO.read(:stdio, :line))}
     end)

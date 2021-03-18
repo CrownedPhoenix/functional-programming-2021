@@ -130,14 +130,16 @@ defmodule Santorini.BoardUtils do
     choose_option(board, 0, strategy)
     {wins?, board, path} = choose_option(board, 0, strategy)
 
-    if wins? do
-      draw(board, :stderr)
-      raise "Winner!"
-    else
-      Board.next_turn(board)
-      |> Board.swap_players()
-    end
+    # if wins? do
+    #   draw(board, :stderr)
+    #   raise "Winner!"
+    # else
+    #   Board.next_turn(board)
+    #   |> Board.swap_players()
+    # end
 
+    Board.next_turn(board)
+    |> Board.swap_players()
   end
 
   def choose_option(board, player_id, strategy) do
