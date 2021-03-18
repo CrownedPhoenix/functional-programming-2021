@@ -99,7 +99,7 @@ defmodule Santorini.CLI do
     b =
       case players do
         [%{card: my_card}, %{card: c2, tokens: t2}] ->
-          other = Enum.at(players, 1)
+          other = Enum.at(players, 1).tokens
 
           my_tokens =
             Stream.repeatedly(fn -> [Enum.random(1..5), Enum.random(1..5)] end)
